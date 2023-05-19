@@ -1,0 +1,15 @@
+[submodule "mosquitto"]
+	path = mosquitto
+	url = git@github.com:eclipse/mosquitto.git
+	ignore = dirty
+[submodule "openssl"]
+	path = openssl
+	url = git@github.com:openssl/openssl.git
+	ignore = dirty
+[submodule "cJSON"]
+	path = cJSON
+	url = https://github.com/DaveGamble/cJSON
+	ignore = dirty
+[submodule "csv-fast-reader"]
+	path = csv-fast-reader
+	url = https://github.com/jandoczy/csv-fast-reader

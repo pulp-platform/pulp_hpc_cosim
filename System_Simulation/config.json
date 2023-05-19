@@ -1,0 +1,119 @@
+{
+    "Processor Config":
+    {
+        "power_domains": 4,
+        "use_all_domains": "no",
+        "use_constant_deviation": "no",
+        "chiplets": [
+            {
+                "index": 0,
+                "cid": 2049
+            }
+        ],
+        "component": [
+            {
+                "cid": 2,
+                "number": 9,
+                "position":
+                    {
+                        "p1": [1, 1],
+                        "p3": [15, 15]
+                    },
+                "internal_placement": [3, 3],
+                "domain": 0,
+                "chiplet": 0
+            },
+            {
+                "cid": 2,
+                "number": 9,
+                "position":
+                    {
+                        "p1": [1, 1],
+                        "p3": [15, 15]
+                    },
+                "internal_placement": [3, 3],
+                "domain": 1,
+                "chiplet": 0                
+            },
+            {
+                "cid": 2,
+                "number": 9,
+                "position":
+                    {
+                        "p1": [1, 1],
+                        "p3": [15, 15]
+                    },
+                "internal_placement": [3, 3],
+                "domain": 2,
+                "chiplet": 0
+            },
+            {
+                "cid": 2,
+                "number": 9,
+                "position":
+                    {
+                        "p1": [1, 1],
+                        "p3": [15, 15]
+                    },
+                "internal_placement": [3, 3],
+                "domain": 3,
+                "chiplet": 0
+            }
+        ]
+    },
+
+    "core": [
+        {
+            "name": "Monte Cimone",
+            "cid": 2,
+            "leak_vdd": 324.29,
+            "leak_temp": 1.0,
+            "leak_process": 528.04,
+            "instructions_power_levels": 5,
+            "dyn_pow_cpu_coeff": [466.741, 694.866, 1235.452, 1651.217, 1600.92],
+            "uncertainties":
+            {
+                "intra-die_silicon_variation":
+                {
+                    "gaussian_mean": 0.2,
+                    "gaussian_variance": 0.5,
+                    "variance_limits_perc": [-0.02, 0.05],
+                    "3sigma=30:variation_perc": 0.5                     
+                },
+                "temperature_noise":
+                {
+                    "type": "white",
+                    "signal_to_noise_ratio": 10
+                },
+                "workload_noise":
+                {
+                    "type": "white",
+                    "signal_to_noise_ratio": 10
+                }
+            }
+        }
+    ],
+
+    "hbm": [
+        {
+            "name": "HBM",
+            "cid": 1025,
+            "coeff": 0.25,
+            "default_activity": 100
+        }
+    ],
+
+    "chiplet": [
+        {
+            "name": "default",
+            "cid": 2049,
+            "inter-wafer_silicon_variation":
+            {
+                "gaussian_mean": 0.35,
+                "gaussian_variance": 0.5,
+                "variance_limits_perc": [-0.05, 0.15],
+                "3sigma=30:variation_perc": 2.0                    
+            }
+        }
+    ]
+}

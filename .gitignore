@@ -1,0 +1,7 @@
+linux_simulation
+*.o
+compiled/
+output.map
+local_simulation
+Data_Collector/data_retriever_local
+Data_Collector/data_retriever
