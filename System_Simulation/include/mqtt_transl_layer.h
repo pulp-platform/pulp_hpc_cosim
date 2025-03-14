@@ -1,4 +1,3 @@
-
 /*************************************************************************
 *
 * Copyright 2023 ETH Zurich and University of Bologna
@@ -20,13 +19,11 @@
 *
 **************************************************************************/
 
-
-
-
 #ifndef _MQTT_TRANSL_LAYER_
 #define _MQTT_TRANSL_LAYER_
 
 #include "mySem.h"
+#include "cmdconf.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -132,7 +129,7 @@ static inline void transl_layer_copy_message(const struct mosquitto_message *mes
 	#ifdef USE_EXAMON
 	int board = -1;
 	int chip = -1;
-	char examon_base_topic[EXAMON_MAX_TOPIC_CHAR] = "";
+	char examon_base_topic[EXAMON_MAX_TOPIC_CHAR] = "org/unibo/cluster/epi_cluster/node/hostname/plugin/pulpcontroller_pub/chnl";
 	char examon_topic[EXAMON_MAX_TOPIC_CHAR] = "";
 	char examon_cmd[16] = "";
 	char examon_position[16] = "";

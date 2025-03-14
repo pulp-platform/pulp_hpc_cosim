@@ -1,4 +1,3 @@
-
 /*************************************************************************
 *
 * Copyright 2023 ETH Zurich and University of Bologna
@@ -20,15 +19,6 @@
 *
 **************************************************************************/
 
-
-
-/*
- * wl_config.h
- *
- *  Created on: 19 giu 2020
- *      Author: giova
- */
-
 #ifndef INC_WL_CONFIG_H_
 #define INC_WL_CONFIG_H_
 
@@ -36,7 +26,7 @@
 
 #include <stdint.h>
 
-#define N_WL_SEQ                8 // 7
+#define N_WL_SEQ                2 // 7
 
 typedef struct _wl_block_struct {
 	uint32_t state;
@@ -62,9 +52,9 @@ typedef struct _Seqblock {
 //To simplify and better thing, all blocks and Macroblock should end with 0/0
 
 void initWlTransl(void);
-void execWlTransl(uint32_t* icycles_per_step);
+void execWlTransl(float* icycles_per_step);
 
-
+void scmi_wl_parser(void);
 
 
 

@@ -1,5 +1,3 @@
-
-
 /*************************************************************************
 *
 * Copyright 2023 ETH Zurich and University of Bologna
@@ -20,9 +18,6 @@
 * Author: Giovanni Bambini (gv.bambini@gmail.com)
 *
 **************************************************************************/
-
-/* Copied Unibo exercise */
-/* https://www.cs.unibo.it/~ghini/didattica/sistemioperativi/PTHREAD/POSIX_SEMAPHORES/MYSEM/ */
 
 #ifndef _THREAD_SAFE
 	#define _THREAD_SAFE

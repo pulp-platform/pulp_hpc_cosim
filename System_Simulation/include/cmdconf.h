@@ -1,4 +1,3 @@
-
 /*************************************************************************
 *
 * Copyright 2023 ETH Zurich and University of Bologna
@@ -20,15 +19,6 @@
 *
 **************************************************************************/
 
-
-
-/*
- * comm.h
- *
- *  Created on: 19 giu 2020
- *      Author: giova
- */
-
 #ifndef INC_COMM_H_
 #define INC_COMM_H_
 
@@ -37,8 +27,8 @@
 //---
 //CONFIGURATION
 //---
-#define N_HPC_CORE			36
-//#define Nc 				    N_HPC_CORE //both, for legacy
+#define N_EPI_CORE			36
+//#define Nc 				    N_EPI_CORE //both, for legacy
 #define WL_STATES			5 //6
 //#define N_QUADS				2
 #define N_EXT_DOMAIN		4
@@ -55,17 +45,17 @@
 const float Tamb;
 //const int CoreQuad[Nc];
 
-const float ThermalCorrection;
+const float ThermalCorrection[N_EPI_CORE];
 
-#define steps_per_sim_time_ms 1000
+#define steps_per_sim_time_ms 20 //1000
 #define sim_hw_multiplier 25
-#define sim_multiplier 8 //4
+#define sim_multiplier 1 //8 //4
 
 
 float *power_meas_precision_us;
 int *power_meas_steps_offset;
 
-int global_finished[N_HPC_CORE];
+int global_finished[N_EPI_CORE];
 
 /*** Data Struct ***/
 /*

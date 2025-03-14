@@ -1,4 +1,3 @@
-
 /*************************************************************************
 *
 * Copyright 2023 ETH Zurich and University of Bologna
@@ -19,9 +18,6 @@
 * Author: Giovanni Bambini (gv.bambini@gmail.com)
 *
 **************************************************************************/
-
-
-
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -162,8 +158,8 @@ int main(int argc, char** argv)
 	//strcpy(mqtt_examon_pub.broker_ip, "131.175.206.244");
 	strcpy(mqtt_examon_pub.broker_ip, "137.204.213.167"); //MQTT_BROKER_IP
 	mqtt_examon_pub.broker_port = 1883;
-	strcpy(mqtt_examon_pub.username, "hpe"); //MQTT_USERNAME
-	strcpy(mqtt_examon_pub.passwd, "m0squ1tt0321"); //MQTT_PASSWD
+	strcpy(mqtt_examon_pub.username, ""); //MQTT_USERNAME
+	strcpy(mqtt_examon_pub.passwd, ""); //MQTT_PASSWD
 
 	printf("[Retriever]: Starting Examon Publisher...\n");
 

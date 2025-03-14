@@ -1,4 +1,3 @@
-
 /*************************************************************************
 *
 * Copyright 2023 ETH Zurich and University of Bologna
@@ -19,7 +18,6 @@
 * Author: Giovanni Bambini (gv.bambini@gmail.com)
 *
 **************************************************************************/
-
 
 #ifndef INC_SIM_CONFIG_H_
 #define INC_SIM_CONFIG_H_
@@ -148,6 +146,8 @@ struct simulation_st {
     //uint32_t nb_components;
     //TODO this below.
     uint32_t nb_cores;
+    uint32_t nb_cores_rows;
+    uint32_t nb_cores_columns;
     //struct element_st* elements;
     uint32_t nb_power_domains;
 };

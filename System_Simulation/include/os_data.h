@@ -1,4 +1,3 @@
-
 /*************************************************************************
 *
 * Copyright 2023 ETH Zurich and University of Bologna
@@ -19,15 +18,6 @@
 * Author: Giovanni Bambini (gv.bambini@gmail.com)
 *
 **************************************************************************/
-
-
-
-/*
- * main.h
- *
- *  Created on: 19 feb 2020
- *      Author: giova
- */
 
 #ifndef _OS_DATA_H_
 #define _OS_DATA_H_

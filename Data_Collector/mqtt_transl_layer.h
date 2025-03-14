@@ -1,4 +1,3 @@
-
 /*************************************************************************
 *
 * Copyright 2023 ETH Zurich and University of Bologna
@@ -19,9 +18,6 @@
 * Author: Giovanni Bambini (gv.bambini@gmail.com)
 *
 **************************************************************************/
-
-
-
 
 #ifndef _MQTT_TRANSL_LAYER_
 #define _MQTT_TRANSL_LAYER_
@@ -135,7 +131,7 @@ static inline void transl_layer_copy_message(const struct mosquitto_message *mes
 	#ifdef USE_EXAMON
 	int board = -1;
 	int chip = -1;
-	char examon_base_topic[EXAMON_MAX_TOPIC_CHAR] = "/node/hostname/plugin/pulpcontroller_pub/chnl";
+	char examon_base_topic[EXAMON_MAX_TOPIC_CHAR] = "org/unibo/cluster/epi_cluster/node/hostname/plugin/pulpcontroller_pub/chnl";
 	char examon_topic[EXAMON_MAX_TOPIC_CHAR] = "";
 	char examon_cmd[16] = "";
 	char examon_position[16] = "";
@@ -323,7 +319,7 @@ static inline void transl_layer_copy_message(const struct mosquitto_message *mes
 		{
 			sprintf(examon_time, "%d.%d", (epoch_time + report_add),  (int)(id * EXAMON_TIME_MUL - (report_add*1000000) ) );
 		}
-		printf("%s\n\r", examon_time);
+		//printf("%s\n\r", examon_time);
 		//printf("%d, %d, %d;   ", report_add, id, (id * EXAMON_TIME_MUL - (report_add*1000000) ) );
 		//printf("id: %d, time: %s, epoch: %d, division: %f\n\r", id, examon_time, epoch_time, ((float)id / 1000000.0f));
 		#else

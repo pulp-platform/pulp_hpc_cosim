@@ -1,4 +1,3 @@
-
 /*************************************************************************
 *
 * Copyright 2023 ETH Zurich and University of Bologna
@@ -19,15 +18,6 @@
 * Author: Giovanni Bambini (gv.bambini@gmail.com)
 *
 **************************************************************************/
-
-
-
-/*
- * wl_config.h
- *
- *  Created on: 19 giu 2020
- *      Author: giova
- */
 
 #ifndef INC_EXT_PW_CONFIG_H_
 #define INC_EXT_PW_CONFIG_H_

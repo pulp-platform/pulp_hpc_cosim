@@ -1,4 +1,3 @@
-
 /*************************************************************************
 *
 * Copyright 2023 ETH Zurich and University of Bologna
@@ -19,15 +18,6 @@
 * Author: Giovanni Bambini (gv.bambini@gmail.com)
 *
 **************************************************************************/
-
-
-
-/*
- * main.h
- *
- *  Created on: 19 feb 2020
- *      Author: giova
- */
 
 #ifndef _MAIN_H_
 #define _MAIN_H_
@@ -122,6 +112,8 @@ int ifp_debug_alpha_dim;
 int ifp_debug_redpw_dim;
 int ifp_debug_freqredmap_dim;
 //
+//SCMI
+float* hlc_workload_delivery;
 
 //Simulation
 volatile int* gn_run_simulation;
@@ -134,7 +126,9 @@ void *pthread_workload_computation(void *ptr);
 void *pthread_model_execution(void *ptr);
 void *pthread_os_scmi_sim(void *ptr);
 void *pthread_govern_interface(void *ptr);
-void* pthread_data_scalper(void *ptr);
+void *pthread_data_scalper(void *ptr);
+void *pthread_data_saver(void *ptr);
+void *pthread_hlc_execution(void *ptr);
 
 pthread_mutex_t pthread_lock_gp_wl;
 //data passing
@@ -148,13 +142,17 @@ mySem_t sem_to_Model;
 mySem_t sem_to_Wl;
 mySem_t sem_os_timer_tick;
 mySem_t sem_model_timer_tick;
-mySem_t sem_govern_timer_tick;
+mySem_t sem_scalper_timer_tick;
+mySem_t sem_to_HLC;
+mySem_t sem_saver_timer_tick;
 #else
 sem_t sem_to_Model;
 sem_t sem_to_Wl;
 sem_t sem_os_timer_tick;
 sem_t sem_model_timer_tick;
-sem_t sem_govern_timer_tick;
+sem_t sem_scalper_timer_tick;
+sem_t sem_to_HLC;
+sem_t sem_saver_timer_tick;
 #endif
 
 //Linux stuff

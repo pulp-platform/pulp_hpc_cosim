@@ -1,4 +1,3 @@
-
 /*************************************************************************
 *
 * Copyright 2023 ETH Zurich and University of Bologna
@@ -20,15 +19,13 @@
 *
 **************************************************************************/
 
-
-
-
 //Standard Lib
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
 #include <stddef.h>
+#include <errno.h>
 
 //System & Thread
 #include <pthread.h>
@@ -46,6 +43,7 @@
 
 //MyLib
 #include "main.h"
+#include "sim_config.h"
 
 //Model
 #include "cmdconf.h"
@@ -55,7 +53,7 @@
 //Govern
 #include "mqtt_config.h"
 #include "mqtt_collector.h"
-#include "mqtt_transl_layer.h"
+//#include "mqtt_transl_layer.h"
 #include "mqtt_publisher.h"
 
 
@@ -84,6 +82,7 @@ typedef struct _send_uint32 {
 time_t epoch_time;
 #endif
 
+#define CSV_DELIM ';'
 
 
 void* pthread_govern_interface(void *ptr)
@@ -102,8 +101,11 @@ void* pthread_govern_interface(void *ptr)
 
 void* pthread_data_scalper(void *ptr)
 {
+    uint32_t temp_dim = simulation.nb_cores; //otp_model_core_temp_dim
+    uint32_t temp_sensor_stride = 2;
+
     uint32_t* l_domain_pw = (uint32_t*)malloc(sizeof(uint32_t)*(otp_domain_pw_dim+1));
-    uint32_t* l_model_core_temp = (uint32_t*)malloc(sizeof(uint32_t)*(otp_model_core_temp_dim+1));
+    uint32_t* l_model_core_temp = (uint32_t*)malloc(sizeof(uint32_t)*(temp_dim+1));
     uint32_t* l_instructions_information = (uint32_t*)malloc(sizeof(uint32_t)*(otp_instructions_information_dim+1));
     uint32_t* l_core_target_freq = (uint32_t*)malloc(sizeof(uint32_t)*(otpc_core_target_freq_dim+1));
     uint32_t* l_domain_pw_budget = (uint32_t*)malloc(sizeof(uint32_t)*(otpc_domain_pw_budget_dim+1));
@@ -115,13 +117,6 @@ void* pthread_data_scalper(void *ptr)
     uint32_t* l_debug_alpha = (uint32_t*)malloc(sizeof(uint32_t)*(ifp_debug_alpha_dim+1));
     uint32_t* l_debug_redpw = (uint32_t*)malloc(sizeof(uint32_t)*(ifp_debug_redpw_dim+1));
     uint32_t* l_debug_freqredmap = (uint32_t*)malloc(sizeof(uint32_t)*(ifp_debug_freqredmap_dim+1));
-    if (l_debug_alpha == NULL)
-        printf("a ");
-    if (l_debug_redpw == NULL)
-        printf("b ");
-    if (l_debug_freqredmap == NULL)
-        printf("c ");
-
 
     struct mqtt_instance mqtt_fpga;
 	struct mqtt_publisher_message mqtt_message;
@@ -135,14 +130,14 @@ void* pthread_data_scalper(void *ptr)
     strcpy(mqtt_fpga.username, MQTT_USERNAME);
 	strcpy(mqtt_fpga.passwd, MQTT_PASSWD);
     #else
-    strcpy(mqtt_examon_pub.broker_ip, MQTT_BROKER_IP); //MQTT_BROKER_IP
+    strcpy(mqtt_examon_pub.broker_ip, "137.204.213.167"); //MQTT_BROKER_IP
 	mqtt_examon_pub.broker_port = 1883;
-	strcpy(mqtt_examon_pub.username, MQTT_USERNAME); //MQTT_USERNAME
-	strcpy(mqtt_examon_pub.passwd, MQTT_PASSWD); //MQTT_PASSWD
+	strcpy(mqtt_examon_pub.username, "hpe"); //MQTT_USERNAME
+	strcpy(mqtt_examon_pub.passwd, "m0squ1tt0321"); //MQTT_PASSWD
 
     int board = -1;
 	int chip = -1;
-	char examon_base_topic[EXAMON_MAX_TOPIC_CHAR] = "/node/hostname/plugin/pulpcontroller_pub/chnl";
+	char examon_base_topic[EXAMON_MAX_TOPIC_CHAR] = "org/unibo/cluster/epi_cluster/node/hostname/plugin/pulpcontroller_pub/chnl";
 	char examon_topic[EXAMON_MAX_TOPIC_CHAR] = "";
 	char examon_cmd[16] = "";
 	char examon_position[16] = "";
@@ -167,7 +162,7 @@ void* pthread_data_scalper(void *ptr)
     int average_counter = average_points;
 
     float* l_average_domain_pw = (float*)calloc(otp_domain_pw_dim, sizeof(float));
-    float* l_average_model_core_temp = (float*)calloc(otp_model_core_temp_dim, sizeof(float));
+    float* l_average_model_core_temp = (float*)calloc(temp_dim, sizeof(float));
     uint32_t* l_average_instructions_information = (uint32_t*)calloc(otp_instructions_information_dim, sizeof(uint32_t));
     //float l_average_core_target_freq[otpc_core_target_freq_dim];
     //float l_average_domain_pw_budget[otpc_domain_pw_budget_dim];
@@ -185,11 +180,10 @@ void* pthread_data_scalper(void *ptr)
     {
     	//sem here, activated through timer
 	    #ifdef USE_MYSEM
-        mySem_wait(&sem_govern_timer_tick);
+        mySem_wait(&sem_scalper_timer_tick);
         #else
-        sem_wait(&sem_govern_timer_tick);
+        sem_wait(&sem_scalper_timer_tick);
         #endif
-
 
         if (!(*gn_pause_simulation))
         {
@@ -201,8 +195,8 @@ void* pthread_data_scalper(void *ptr)
             for (int i = 0; i < otp_domain_pw_dim; i++) {
                 l_average_domain_pw[i] += otp_domain_pw[i];
             }
-            for (int i = 0; i < otp_model_core_temp_dim; i++) {
-                l_average_model_core_temp[i] += otp_model_core_temp[i];
+            for (int i = 0; i < temp_dim; i++) {
+                l_average_model_core_temp[i] += otp_model_core_temp[i*temp_sensor_stride];
             }
             for (int i = 0; i < otp_instructions_information_dim; i++) {
                 l_average_instructions_information[i] += otp_instructions_information[i];
@@ -245,7 +239,6 @@ void* pthread_data_scalper(void *ptr)
             {
                 average_counter = average_points;
 
-
                 /* Copy mem */
                 timestamp = CycleIDnumber;
 
@@ -254,7 +247,7 @@ void* pthread_data_scalper(void *ptr)
                     uint32_t* app_add = l_average_domain_pw;
                     l_domain_pw[i] = app_add[i];
                 }
-                for (int i = 0; i < otp_model_core_temp_dim; i++) {
+                for (int i = 0; i < temp_dim; i++) {
                     l_average_model_core_temp[i] /= (float)average_points;
                     l_average_model_core_temp[i] -= 273.15f;
                     uint32_t* app_add = l_average_model_core_temp;
@@ -314,7 +307,7 @@ void* pthread_data_scalper(void *ptr)
 
                 //l_domain_pw[otp_domain_pw_dim] = timestamp;
                 l_domain_pw[1] = timestamp; //TODO: REMOVE FOR ECC23 
-                l_model_core_temp[otp_model_core_temp_dim] = timestamp;
+                l_model_core_temp[temp_dim] = timestamp;
                 l_instructions_information[otp_instructions_information_dim] = timestamp;
                 l_core_target_freq[otpc_core_target_freq_dim] = timestamp;
                 //l_domain_pw_budget[otpc_domain_pw_budget_dim] = timestamp;
@@ -356,7 +349,7 @@ void* pthread_data_scalper(void *ptr)
                 */
 
                 sprintf(mqtt_message.topic, "pms/board0/chip0/data/otp/temp");
-                mqtt_message.length = sizeof(uint32_t)*(otp_model_core_temp_dim+1);
+                mqtt_message.length = sizeof(uint32_t)*(temp_dim+1);
                 mqtt_message.address = (void*)l_model_core_temp;
                 publisher_send(&mqtt_fpga, &mqtt_message);
 
@@ -370,7 +363,6 @@ void* pthread_data_scalper(void *ptr)
                 mqtt_message.length = sizeof(uint32_t)*(ifp_ctrl_quad_vdd_dim+1);
                 mqtt_message.address = (void*)l_ctrl_quad_vdd;
                 publisher_send(&mqtt_fpga, &mqtt_message);
-
 
                 sprintf(mqtt_message.topic, "pms/board0/chip0/data/otp/instr");
                 mqtt_message.length = sizeof(uint32_t)*(otp_instructions_information_dim+1);
@@ -403,9 +395,10 @@ void* pthread_data_scalper(void *ptr)
                 mqtt_message.address = (void*)l_debug_freqredmap;
                 publisher_send(&mqtt_fpga, &mqtt_message);
 
-                #else //not USE_EXAMON
+                #else //not not USE_EXAMON
 
                 // prepare examon topic:
+                int length = MAX_DATA_LENGTH;
                 snprintf(examon_topic, EXAMON_MAX_TOPIC_CHAR, "%s%s%s%d%s%d%s", examon_base_topic, examon_cmd, "/board/", board, "/chip/", chip, examon_position);
                 char* examon_data = (char *)malloc(64*(length-MQTT_SIGN_DIM)*sizeof(char));
                 char* examon_time = (char *)malloc(32*sizeof(char));
@@ -454,15 +447,13 @@ void* pthread_data_scalper(void *ptr)
                 mqtt_message.address = (void*)l_core_target_freq;
                 publisher_send(&mqtt_fpga, &mqtt_message);
 
-                /*
-                sprintf(mqtt_message.topic, "pms/board0/chip0/data/ifp/domain_freq");
-                mqtt_message.length = sizeof(uint32_t)*(ifp_ctrl_quad_freq_dim+1);
-                mqtt_message.address = (void*)l_ctrl_quad_freq;
-                publisher_send(&mqtt_fpga, &mqtt_message);
-                */
+                //sprintf(mqtt_message.topic, "pms/board0/chip0/data/ifp/domain_freq");
+                //mqtt_message.length = sizeof(uint32_t)*(ifp_ctrl_quad_freq_dim+1);
+                //mqtt_message.address = (void*)l_ctrl_quad_freq;
+                //publisher_send(&mqtt_fpga, &mqtt_message);
 
                 sprintf(mqtt_message.topic, "pms/board0/chip0/data/otp/temp");
-                mqtt_message.length = sizeof(uint32_t)*(otp_model_core_temp_dim+1);
+                mqtt_message.length = sizeof(uint32_t)*(temp_dim+1);
                 mqtt_message.address = (void*)l_model_core_temp;
                 publisher_send(&mqtt_fpga, &mqtt_message);
 
@@ -519,7 +510,7 @@ void* pthread_data_scalper(void *ptr)
                 for (int i = 0; i < otp_domain_pw_dim; i++) {
                     l_average_domain_pw[i] = 0;
                 }
-                for (int i = 0; i < otp_model_core_temp_dim; i++) {
+                for (int i = 0; i < temp_dim; i++) {
                     l_average_model_core_temp[i] = 0;
                 }
                 for (int i = 0; i < otp_instructions_information_dim; i++) {
@@ -590,4 +581,181 @@ void* pthread_data_scalper(void *ptr)
     //
     free(l_average_debug_alpha);
     free(l_average_debug_redpw);
+}
+
+void* pthread_data_saver(void *ptr)
+{
+    uint32_t temp_dim = simulation.nb_cores; //otp_model_core_temp_dim
+    uint32_t temp_sensor_stride = 2;
+
+    float l_total_pw;
+    float* l_model_core_temp = (float*)malloc(sizeof(float)*(temp_dim));
+    float* l_instructions_information = (float*)malloc(sizeof(float)*(simulation.nb_cores));
+    float* l_core_target_freq = (float*)malloc(sizeof(float)*(otpc_core_target_freq_dim));
+    float* l_ctrl_core_freq = (float*)malloc(sizeof(float)*(ifp_ctrl_core_freq_dim+1));
+
+    uint32_t timestamp = 0;
+    int file_gen_val = 0;
+
+    /* CSV Files */
+    FILE *fp_pw, *fp_temp, *fp_idle, *fp_tf, *fp_freq;
+    fp_pw = fopen("./Results/power.csv", "w");
+    if(fp_pw == NULL){
+        fprintf(stderr, "[RESULTS] Error opening power.csv file: %s\n", strerror(errno));
+        file_gen_val += 1;
+    }
+    else{
+        fprintf(fp_pw, "Timestamp%c TotalPower\n\r", CSV_DELIM);
+    }
+    fp_temp = fopen("./Results/temp.csv", "w");
+    if(fp_temp == NULL){
+        fprintf(stderr, "[RESULTS] Error opening temp.csv file: %s\n", strerror(errno));
+        file_gen_val += 1;
+    }
+    else{
+        fprintf(fp_temp, "Timestamp%c ", CSV_DELIM);
+        for (int i=0; i<temp_dim; i++)
+        {
+            char name[15] = "Temp[";
+            char core[3];
+            sprintf(core, "%d", i);
+            strcat(name, core);
+            strcat(name, "]");
+            fprintf(fp_temp, "%s%c ", name, CSV_DELIM);
+        }
+        fprintf(fp_temp, "\n\r");
+    }
+    fp_tf = fopen("./Results/target_freq.csv", "w");
+    if(fp_tf == NULL){
+        fprintf(stderr, "[RESULTS] Error opening target_freq.csv file: %s\n", strerror(errno));
+        file_gen_val += 1;
+    }
+    else{
+        fprintf(fp_tf, "Timestamp%c ", CSV_DELIM);
+        for (int i=0; i<otpc_core_target_freq_dim; i++)
+        {
+            char name[15] = "TF[";
+            char core[3];
+            sprintf(core, "%d", i);
+            strcat(name, core);
+            strcat(name, "]");
+            fprintf(fp_tf, "%s%c ", name, CSV_DELIM);
+        }
+        fprintf(fp_tf, "\n\r");
+    }
+    fp_idle = fopen("./Results/idle.csv", "w");
+    if(fp_idle == NULL){
+        fprintf(stderr, "[RESULTS] Error opening idle.csv file: %s\n", strerror(errno));
+        file_gen_val += 1;
+    }
+    else{
+        fprintf(fp_idle, "Timestamp%c ", CSV_DELIM);
+        for (int i=0; i<simulation.nb_cores; i++)
+        {
+            char name[15] = "IDLE_i[";
+            char core[3];
+            sprintf(core, "%d", i);
+            strcat(name, core);
+            strcat(name, "]");
+            fprintf(fp_idle, "%s%c ", name, CSV_DELIM);
+        }
+        fprintf(fp_idle, "\n\r");
+    }
+    fp_freq = fopen("./Results/freq.csv", "w");
+    if(fp_freq == NULL){
+        fprintf(stderr, "[RESULTS] Error opening freq.csv file: %s\n", strerror(errno));
+        file_gen_val += 1;
+    }
+    else{
+        fprintf(fp_freq, "Timestamp%c ", CSV_DELIM);
+        for (int i=0; i<simulation.nb_cores; i++)
+        {
+            char name[15] = "Freq[";
+            char core[3];
+            sprintf(core, "%d", i);
+            strcat(name, core);
+            strcat(name, "]");
+            fprintf(fp_freq, "%s%c ", name, CSV_DELIM);
+        }
+        fprintf(fp_freq, "\n\r");
+    }
+
+    //Infinite Cycle:
+    while(*gn_run_simulation)
+    {
+    	//sem here, activated through timer
+	    #ifdef USE_MYSEM
+        mySem_wait(&sem_saver_timer_tick);
+        #else
+        sem_wait(&sem_saver_timer_tick);
+        #endif
+
+        if (!(*gn_pause_simulation))
+        {
+            for (int i=0;i<ifp_ctrl_core_freq_dim;i++)
+            {
+                l_ctrl_core_freq[i] = ifp_ctrl_core_freq[i];
+            }
+            for (int i=0;i<otpc_core_target_freq_dim;i++)
+            {
+                l_core_target_freq[i] = otpc_core_target_freq[i];
+            }
+            for (int i = 0; i < temp_dim; i++) {
+                l_model_core_temp[i] = otp_model_core_temp[i*temp_sensor_stride];
+            }
+
+            l_total_pw = otp_domain_pw[0];
+
+            for (int i = 0; i < otp_instructions_information_dim; i++) {
+                if (i % WL_STATES == 0)
+                {
+                    l_instructions_information[i/WL_STATES] = otp_instructions_information[i];
+                }
+            }
+
+            timestamp = CycleIDnumber;
+
+            fprintf(fp_pw, "%u%c %f%c\n\r", CycleIDnumber, CSV_DELIM, l_total_pw, CSV_DELIM);
+            //
+            fprintf(fp_temp, "%u%c ", CycleIDnumber, CSV_DELIM);
+            for (int i=0; i<temp_dim; i++)
+            {
+                fprintf(fp_temp, "%f%c ", l_model_core_temp[i], CSV_DELIM);
+            }
+            fprintf(fp_temp, "\n\r");
+            //
+            fprintf(fp_tf, "%u%c ", CycleIDnumber, CSV_DELIM);
+            for (int i=0; i<otpc_core_target_freq_dim; i++)
+            {
+                fprintf(fp_tf, "%f%c ", l_core_target_freq[i], CSV_DELIM);
+            }
+            fprintf(fp_tf, "\n\r");
+            //
+            fprintf(fp_freq, "%u%c ", CycleIDnumber, CSV_DELIM);
+            for (int i=0; i<ifp_ctrl_core_freq_dim; i++)
+            {
+                fprintf(fp_freq, "%f%c ", l_ctrl_core_freq[i], CSV_DELIM);
+            }
+            fprintf(fp_freq, "\n\r");
+            //
+            fprintf(fp_idle, "%u%c ", CycleIDnumber, CSV_DELIM);
+            for (int i=0; i<simulation.nb_cores; i++)
+            {
+                fprintf(fp_idle, "%f%c ", l_instructions_information[i], CSV_DELIM);
+            }
+            fprintf(fp_idle, "\n\r");            
+
+        }
+    }
+
+    free(l_model_core_temp);
+    free(l_instructions_information);
+    free(l_core_target_freq);
+    free(l_ctrl_core_freq);
+
+    fclose(fp_pw);
+    fclose(fp_tf);
+    fclose(fp_idle);
+    fclose(fp_freq);
+    fclose(fp_temp);
 }

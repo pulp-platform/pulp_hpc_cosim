@@ -1,4 +1,3 @@
-
 /*************************************************************************
 *
 * Copyright 2023 ETH Zurich and University of Bologna
@@ -20,7 +19,6 @@
 *
 **************************************************************************/
 
-
 #include "sim_config.h"
 #include "cJSON.h"
 #include "cmdconf.h"
@@ -34,7 +32,7 @@
 #include <string.h>
 #include <time.h>
 
-#define JSON_DEBUG
+//#define JSON_DEBUG
 
 #define JSON_CORE_CID   0x3FF
 #define JSON_HBM_CID    0x7FF
@@ -42,6 +40,7 @@
 
 int USE_ALL_DOMAINS = 0;
 int USE_CONSTANT_DEVIATION = 0;
+int USE_PARAMETER_DEVIATION = 1;
 
 struct simulation_st simulation;
 
@@ -613,6 +612,32 @@ int initialize_simstruct(char *filepath) {
         //exit(1);
         USE_CONSTANT_DEVIATION = 0;
     }
+    element = cJSON_GetObjectItemCaseSensitive(jsonarray, "use_parameter_deviation");
+    if (cJSON_IsString(element) && (element->valuestring != NULL)){
+        #ifdef JSON_DEBUG
+        printf("[JSON] Checking if to use parameter deviation: %s\n\r", element->valuestring);
+        //Check of the correct string will be done after
+        #endif
+        if ( (!strcmp(element->valuestring, "yes")) || 
+                (!strcmp(element->valuestring, "Yes")) || 
+                (!strcmp(element->valuestring, "y")) || 
+                (!strcmp(element->valuestring, "Y")) )
+        {
+            USE_PARAMETER_DEVIATION = 1;
+            #ifdef JSON_DEBUG
+            printf("[JSON] \tUsing constant deviation!\n\r");
+            #endif
+        }
+        else
+        {
+            USE_PARAMETER_DEVIATION = 0;
+        }
+    } else {
+        //TODO
+        printf("[JSON] use_constant_deviation type is not a string, using DEFAULT: no\n\r");
+        //exit(1);
+        USE_PARAMETER_DEVIATION = 0;
+    }
     element = cJSON_GetObjectItemCaseSensitive(jsonarray, "power_domains");
     if (cJSON_IsNumber(element) && (element->valueint > 0)) {
         #ifdef JSON_DEBUG
@@ -622,6 +647,28 @@ int initialize_simstruct(char *filepath) {
     } else {
         //TODO
         printf("[JSON] power domains is not a number\n\r");
+        exit(1);
+    }
+    element = cJSON_GetObjectItemCaseSensitive(jsonarray, "cores_rows");
+    if (cJSON_IsNumber(element) && (element->valueint > 0)) {
+        #ifdef JSON_DEBUG
+        printf("[JSON] Checking Processor cores rows number number \"%d\"\n\r", element->valueint);
+        #endif
+        simulation.nb_cores_rows = element->valueint;
+    } else {
+        //TODO
+        printf("[JSON] Processor cores rows is not a number\n\r");
+        exit(1);
+    }
+    element = cJSON_GetObjectItemCaseSensitive(jsonarray, "cores_columns");
+    if (cJSON_IsNumber(element) && (element->valueint > 0)) {
+        #ifdef JSON_DEBUG
+        printf("[JSON] Checking Processor cores columns number number \"%d\"\n\r", element->valueint);
+        #endif
+        simulation.nb_cores_columns = element->valueint;
+    } else {
+        //TODO
+        printf("[JSON] Processor cores columns is not a number\n\r");
         exit(1);
     }
     cJSON *chiplets = cJSON_GetObjectItemCaseSensitive(jsonarray, "chiplets");
@@ -785,37 +832,50 @@ int initialize_simstruct(char *filepath) {
                         //here I repeat instead of just doing saturation, because If I saturate, I would violate the normal distribution
                         //  given that at the boundaries I will have a spike = the integral of the gaussian distribution from limit to infinity.
 
-                        if(!USE_CONSTANT_DEVIATION)
-                        {
-                            #ifdef JSON_DEBUG
-                            printf("[JSON] \t core %d/%d variation: %f -- total: %f\n\r", i, core_components[j].cid, res, (1.0f+chiplet_silicon_var+res)*100.0f);
-                            #endif
-                            simulation.elements[sim_element_counter].core_config.leak_vdd = core_components[j].leak_vdd * (1.0f+chiplet_silicon_var+res);
-                            simulation.elements[sim_element_counter].core_config.leak_temp = core_components[j].leak_temp * (1.0f+chiplet_silicon_var+res);
-                            simulation.elements[sim_element_counter].core_config.leak_process = core_components[j].leak_process * (1.0f+chiplet_silicon_var+res);
+                        if (!USE_PARAMETER_DEVIATION){
+                            simulation.elements[sim_element_counter].core_config.leak_vdd = core_components[j].leak_vdd;
+                            simulation.elements[sim_element_counter].core_config.leak_temp = core_components[j].leak_temp;
+                            simulation.elements[sim_element_counter].core_config.leak_process = core_components[j].leak_process;
                             simulation.elements[sim_element_counter].core_config.wl_states = core_components[j].wl_states;
                             simulation.elements[sim_element_counter].core_config.dyn_pow_cpu_coeff =
                                             (float*)malloc(sizeof(float)*core_components[j].wl_states);
                             for (int k = 0; k < core_components[j].wl_states; k++)
-                                simulation.elements[sim_element_counter].core_config.dyn_pow_cpu_coeff[k] = core_components[j].dyn_pow_cpu_coeff[k] * (1.0f+chiplet_silicon_var+res);
+                                simulation.elements[sim_element_counter].core_config.dyn_pow_cpu_coeff[k] = core_components[j].dyn_pow_cpu_coeff[k];
                                 //printf("%f\n", core_components[j].dyn_pow_cpu_coeff[k]);
                         }
-                        else //not USE_CONSTANT_DEVIATION
-                        {
-                            #ifdef JSON_DEBUG
-                            printf("[JSON] \t core %d/%d variation: %f -- total: %f\n\r", i, core_components[j].cid, res, constant_parameter_deviation[sim_element_counter]);
-                            #endif
-                            simulation.elements[sim_element_counter].core_config.leak_vdd = core_components[j].leak_vdd * constant_parameter_deviation[sim_element_counter] / 100.0f;
-                            simulation.elements[sim_element_counter].core_config.leak_temp = core_components[j].leak_temp * constant_parameter_deviation[sim_element_counter] / 100.0f;
-                            simulation.elements[sim_element_counter].core_config.leak_process = core_components[j].leak_process * constant_parameter_deviation[sim_element_counter] / 100.0f;
-                            simulation.elements[sim_element_counter].core_config.wl_states = core_components[j].wl_states;
-                            simulation.elements[sim_element_counter].core_config.dyn_pow_cpu_coeff =
-                                            (float*)malloc(sizeof(float)*core_components[j].wl_states);
-                            for (int k = 0; k < core_components[j].wl_states; k++)
-                                simulation.elements[sim_element_counter].core_config.dyn_pow_cpu_coeff[k] = core_components[j].dyn_pow_cpu_coeff[k] * constant_parameter_deviation[sim_element_counter] / 100.0f;
-                                //printf("%f\n", core_components[j].dyn_pow_cpu_coeff[k]);
+                        else{
+                            if(!USE_CONSTANT_DEVIATION)
+                            {
+                                #ifdef JSON_DEBUG
+                                printf("[JSON] \t core %d/%d variation: %f -- total: %f\n\r", i, core_components[j].cid, res, (1.0f+chiplet_silicon_var+res)*100.0f);
+                                #endif
+                                simulation.elements[sim_element_counter].core_config.leak_vdd = core_components[j].leak_vdd * (1.0f+chiplet_silicon_var+res);
+                                simulation.elements[sim_element_counter].core_config.leak_temp = core_components[j].leak_temp * (1.0f+chiplet_silicon_var+res);
+                                simulation.elements[sim_element_counter].core_config.leak_process = core_components[j].leak_process * (1.0f+chiplet_silicon_var+res);
+                                simulation.elements[sim_element_counter].core_config.wl_states = core_components[j].wl_states;
+                                simulation.elements[sim_element_counter].core_config.dyn_pow_cpu_coeff =
+                                                (float*)malloc(sizeof(float)*core_components[j].wl_states);
+                                for (int k = 0; k < core_components[j].wl_states; k++)
+                                    simulation.elements[sim_element_counter].core_config.dyn_pow_cpu_coeff[k] = core_components[j].dyn_pow_cpu_coeff[k] * (1.0f+chiplet_silicon_var+res);
+                                    //printf("%f\n", core_components[j].dyn_pow_cpu_coeff[k]);
+                            }
+                            else //not USE_CONSTANT_DEVIATION
+                            {
+                                #ifdef JSON_DEBUG
+                                printf("[JSON] \t core %d/%d variation: %f -- total: %f\n\r", i, core_components[j].cid, res, constant_parameter_deviation[sim_element_counter]);
+                                #endif
+                                simulation.elements[sim_element_counter].core_config.leak_vdd = core_components[j].leak_vdd * constant_parameter_deviation[sim_element_counter] / 100.0f;
+                                simulation.elements[sim_element_counter].core_config.leak_temp = core_components[j].leak_temp * constant_parameter_deviation[sim_element_counter] / 100.0f;
+                                simulation.elements[sim_element_counter].core_config.leak_process = core_components[j].leak_process * constant_parameter_deviation[sim_element_counter] / 100.0f;
+                                simulation.elements[sim_element_counter].core_config.wl_states = core_components[j].wl_states;
+                                simulation.elements[sim_element_counter].core_config.dyn_pow_cpu_coeff =
+                                                (float*)malloc(sizeof(float)*core_components[j].wl_states);
+                                for (int k = 0; k < core_components[j].wl_states; k++)
+                                    simulation.elements[sim_element_counter].core_config.dyn_pow_cpu_coeff[k] = core_components[j].dyn_pow_cpu_coeff[k] * constant_parameter_deviation[sim_element_counter] / 100.0f;
+                                    //printf("%f\n", core_components[j].dyn_pow_cpu_coeff[k]);
 
-                        }//not USE_CONSTANT_DEVIATION
+                            }//not USE_CONSTANT_DEVIATION
+                        }
 
                         //compute_power
                         simulation.elements[sim_element_counter].compute_power = compute_core_power_cid2; //TODO qua è hardcoded
@@ -957,7 +1017,7 @@ float compute_core_power_cid2(struct element_st *self, float freq, float voltage
               process * self->core_config.leak_process) / 1000.0f;
 
     //Themal relation of the leakage, including thermal inversion
-    p_stat *= exp( (4507.748f * voltage + 29.903f * (tempC>90.0f?90.0:tempC) - 6033.035f) / 1000.0f );
+    p_stat *= exp( (4507.748f * voltage + 29.903f * (tempC>125.0f?125.0:tempC) - 6033.035f) / 1000.0f );
     //printf("p: %f, exp: %f\n", p_stat, exp( (4507.748f * voltage + 29.903f * tempC - 6033.035f) / 1000.0f ));
 
     // computing the dynamic power

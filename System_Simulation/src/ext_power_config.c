@@ -1,4 +1,3 @@
-
 /*************************************************************************
 *
 * Copyright 2023 ETH Zurich and University of Bologna
@@ -20,8 +19,6 @@
 *
 **************************************************************************/
 
-
-
 #include "cmdconf.h"
 #include "ext_power_config.h"
 
@@ -33,11 +30,11 @@
 
 
 //To simplify and better thing should end with 0/0
-extpw_data_t ext_power_input[N_EXT_DOMAIN][N_EXT_PW_SEQ] = { {{15, 2000}, {11, 2500}, {7, 1000}, {12, 1500}, {13, 1000} },
-{{11, 2500}, {0, 2000}, {8, 6000}, {10, 6000}, {0, 0} },
-{{7, 1000}, {25, 200}, {24, 100}, {20, 200}, {0, 0} },
-{{12, 1500}, {11, 2000}, {10, 200}, {0, 2000}, {0, 0} },
-{{13, 1000}, {11, 2000}, {10, 200}, {0, 2000}, {0, 0} }
+extpw_data_t ext_power_input[N_EXT_DOMAIN][N_EXT_PW_SEQ] = { {{15, 200000}, {11, 250000}, {7, 100000}, {12, 150000}, {13, 100000} },
+{{11, 250000}, {0, 200000}, {8, 600000}, {10, 600000}, {0, 0} },
+{{7, 100000}, {25, 20000}, {24, 10000}, {20, 20000}, {0, 0} },
+{{12, 150000}, {11, 200000}, {10, 20000}, {0, 200000}, {0, 0} },
+{{13, 100000}, {11, 200000}, {10, 20000}, {0, 200000}, {0, 0} }
 };
 
 
@@ -47,11 +44,11 @@ uint32_t us_counter[N_EXT_DOMAIN] = { 0 };
 
 //TODO:
 int freq_time_divider = 2;
-int sim_time_divider = steps_per_sim_time_ms;
+//int sim_time_divider = steps_per_sim_time_ms;
 
 float total_ext_power(int us_per_step)
 {
-	if (us_counter[0] >= ext_power_input[0][seq_counter[0]].time_us * sim_time_divider)
+	if (us_counter[0] * 1000 / steps_per_sim_time_ms >= ext_power_input[0][seq_counter[0]].time_us)
 	{
 		seq_counter[0]++;
 		if (seq_counter[0] >= N_EXT_PW_SEQ)

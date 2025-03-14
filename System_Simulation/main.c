@@ -1,4 +1,3 @@
-
 /*************************************************************************
 *
 * Copyright 2023 ETH Zurich and University of Bologna
@@ -19,23 +18,6 @@
 * Author: Giovanni Bambini (gv.bambini@gmail.com)
 *
 **************************************************************************/
-
-
-
-/*
- * helloworld.c: simple test application
- *
- * This application configures UART 16550 to baud rate 9600.
- * PS7 UART (Zynq) is not initialized by this application, since
- * bootrom/bsp configures it to baud rate 115200
- *
- * ------------------------------------------------
- * | UART TYPE   BAUD RATE                        |
- * ------------------------------------------------
- *   uartns550   9600
- *   uartlite    Configurable only in HW design
- *   ps7_uart    115200 (configured by bootrom/bsp)
- */
 
 //Standard Lib
 #include <stdio.h>
@@ -70,10 +52,11 @@
 #include "wl_config.h"
 #include "ext_power_config.h"
 #include "sim_config.h"
+#include "perf_model.h"
 //OS
 #include "os_data.h"
 
-//Govern
+//scalper
 
 //Interrupt Management
 #include <signal.h>
@@ -81,7 +64,7 @@
 
 static void model_handler(int sig, siginfo_t *si, void *uc);
 const int os_timer_multiplier = steps_per_sim_time_ms; //todo: since os triggers every ms. If it will changed in the future, change accordingly.
-const int govern_timer_multiplier = steps_per_sim_time_ms/4; //steps_per_sim_time_ms /2(500) /2; //todo: since os triggers every ms. If it will changed in the future, change accordingly.
+const int scalper_timer_multiplier = steps_per_sim_time_ms*2; //steps_per_sim_time_ms /2(500) /2; //todo: since os triggers every ms. If it will changed in the future, change accordingly.
 
 //**** global Model Var: ****//
 
@@ -145,13 +128,17 @@ mySem_t sem_to_Model;
 mySem_t sem_to_Wl;
 mySem_t sem_os_timer_tick;
 mySem_t sem_model_timer_tick;
-mySem_t sem_govern_timer_tick;
+mySem_t sem_scalper_timer_tick;
+mySem_t sem_to_HLC;
+mySem_t sem_saver_timer_tick;
 #else
 sem_t sem_to_Model;
 sem_t sem_to_Wl;
 sem_t sem_os_timer_tick;
 sem_t sem_model_timer_tick;
-sem_t sem_govern_timer_tick;
+sem_t sem_scalper_timer_tick;
+sem_t sem_to_HLC;
+sem_t sem_saver_timer_tick;
 #endif
 
 //mem stuff
@@ -195,8 +182,8 @@ int main(int argc, char **argv)
          }
 */
     /***** Var *****/
-    pthread_t th_model, th_workload, th_OS, th_govern, th_scalper;
-    int iret_model, iret_wl, iret_OS, iret_govern, iret_scalper;
+    pthread_t th_model, th_workload, th_OS, th_govern, th_scalper, th_saver, th_hlc;
+    int iret_model, iret_wl, iret_OS, iret_govern, iret_scalper, iret_saver, iret_hlc;
 
     /* Timer */
     timer_t timerID_model = 0;
@@ -232,9 +219,17 @@ int main(int argc, char **argv)
         initialize_simstruct("System_Simulation/config.json");
     }
 
+    uint32_t tdim=0;
+    uint32_t udim=0;
+
+    initWlTransl();
+    model_initialization(simulation.nb_cores, simulation.nb_cores_rows, simulation.nb_cores_columns, 1000.0f*1000.0f/steps_per_sim_time_ms / 1e9, &tdim, &udim ); //TODO FIX THIS, plus simply steps_per_sim...
+    //model_initialization(4, 2, 2, 1000.0f*1000.0f/steps_per_sim_time_ms / 1e9,  &tdim, &udim  ); //TODO FIX THIS, plus simply steps_per_sim...
+
 
     otp_domain_pw_dim = (simulation.nb_power_domains+1);
-    otp_model_core_temp_dim = simulation.nb_cores;
+    //otp_model_core_temp_dim = simulation.nb_cores;
+    otp_model_core_temp_dim = tdim;
     otp_instructions_information_dim = (simulation.nb_cores*WL_STATES);
     // cmd outputs
     otpc_core_target_freq_dim = simulation.nb_cores;
@@ -425,10 +420,6 @@ int main(int argc, char **argv)
     cafe_addr = (uint32_t*)&otpc_core_bindings[otpc_core_bindings_dim];
     *cafe_addr = IMP_ADR_OF_CHARACTERS;
 
-    initWlTransl();
-    model_initialization(simulation.nb_cores, 6, 6, 1000*1000/(uint32_t)steps_per_sim_time_ms); //TODO FIX THIS, plus simply steps_per_sim...
-
-
     //global Model Var:
     //TODO: proper values.
     for (int i = 0; i < otp_model_core_temp_dim; i++) {
@@ -469,6 +460,11 @@ int main(int argc, char **argv)
         ifp_debug_freqredmap[i] = 0; }
     cafe_addr = (uint32_t*)&ifp_debug_freqredmap[ifp_debug_freqredmap_dim];
     *cafe_addr = IMP_ADR_OF_CHARACTERS;
+
+    //TODO: put in the right place and manage flags and failures
+    init_quanta();
+    parse_wl();
+    //scmi_wl_parser();
 
     printf("[HiL Sim] \t Var Initialization done\n\r");
 
@@ -528,7 +524,19 @@ int main(int argc, char **argv)
     {
         printf("Error Sem Init\n\r");
     }
-    if (mySem_init(&sem_govern_timer_tick, 0, 0, mySem_Binary))
+    #ifdef USE_MQTT_SEND
+    if (mySem_init(&sem_scalper_timer_tick, 0, 0, mySem_Binary))
+    {
+        printf("Error Sem Init\n\r");
+    }
+    #endif
+    #ifdef USE_FILE_DB
+    if (mySem_init(&sem_saver_timer_tick, 0, 0, mySem_Binary))
+    {
+        printf("Error Sem Init\n\r");
+    }
+    #endif
+    if (mySem_init(&sem_to_HLC, 0, 0, mySem_Binary))
     {
         printf("Error Sem Init\n\r");
     }
@@ -550,7 +558,19 @@ int main(int argc, char **argv)
     {
         printf("Error Sem Init\n\r");
     }
-    if (sem_init(&sem_govern_timer_tick, 0, 0))
+    #ifdef USE_MQTT_SEND
+    if (sem_init(&sem_scalper_timer_tick, 0, 0))
+    {
+        printf("Error Sem Init\n\r");
+    }
+    #endif
+    #ifdef USE_FILE_DB
+    if (sem_init(&sem_saver_timer_tick, 0, 0))
+    {
+        printf("Error Sem Init\n\r");
+    }
+    #endif
+    if (sem_init(&sem_to_HLC, 0, 0))
     {
         printf("Error Sem Init\n\r");
     }
@@ -565,6 +585,7 @@ int main(int argc, char **argv)
     }
     //pthread_setconcurrency  //no meaning in Linux.
     //Maybe I should also check if I should create bounded or unbounded Threads:
+    //https://docs.oracle.com/cd/E19455-01/806-5257/6je9h032e/index.html#mtintro-28348
     if (pthread_attr_setschedpolicy(&tattr, SCHED_RR))
     {
         printf("Error attr for thread Init\n\r");
@@ -626,7 +647,15 @@ int main(int argc, char **argv)
     iret_wl = pthread_create( &th_workload, &tattr, pthread_workload_computation, NULL);
     iret_OS = pthread_create( &th_OS, &tattr, pthread_os_scmi_sim, NULL);
     //iret_govern = pthread_create( &th_govern, &tattr, pthread_govern_interface, NULL)
+    #ifdef USE_MQTT_SEND
     iret_scalper = pthread_create( &th_scalper, &tattr, pthread_data_scalper, NULL);
+    #endif
+    #ifdef USE_FILE_DB
+    iret_saver = pthread_create( &th_saver, &tattr, pthread_data_saver, NULL);
+    #endif
+    #ifdef USE_SCMI
+    iret_hlc = pthread_create( &th_hlc, &tattr, pthread_hlc_execution, NULL);
+    #endif
 
     /* Wait till threads are complete before main continues. Unless we  */
     /* wait we run the risk of executing an exit which will terminate   */
@@ -658,6 +687,7 @@ int main(int argc, char **argv)
         int simulating = 1;
         while(simulating)
         {
+            
             printf("[HiL Sim] Press the 's' key to Stop the simulation, 'p' to pause it:  \r");
             char user_resp = "";
             user_resp = (char)getchar();
@@ -685,10 +715,22 @@ int main(int argc, char **argv)
                     }
                 }
             } 
+            
 
             //since I cannot make it work:
             //simulating--;
         }
+    }
+    else
+    {
+        while(1){
+
+            char user_resp = "";
+            user_resp = (char)getchar();
+
+            break;
+
+        };
     }
 
     /** Stop **/
@@ -700,9 +742,18 @@ int main(int argc, char **argv)
     printf("Thread 3 returns: %d\n",iret_OS);
     //pthread_join( th_govern, NULL);
     //printf("Thread 4 returns: %d\n",iret_govern);
+    #ifdef USE_MQTT_SEND
     pthread_join( th_scalper, NULL);
     printf("Thread 5 returns: %d\n",iret_scalper);
-
+    #endif
+    #ifdef USE_FILE_DB
+    pthread_join( th_saver, NULL);
+    printf("Thread 7 returns: %d\n",iret_saver);
+    #endif
+    #ifdef USE_SCMI
+    pthread_join( th_hlc, NULL);
+    printf("Thread 6 returns: %d\n",iret_hlc);
+    #endif
 
     //clear timer:
     if ( timer_delete(timerID_model) != 0)
@@ -718,14 +769,26 @@ int main(int argc, char **argv)
     mySem_destroy(&sem_to_Wl);
     mySem_destroy(&sem_os_timer_tick);
     mySem_destroy(&sem_model_timer_tick);
-    mySem_destroy(&sem_govern_timer_tick);
+    #ifdef USE_MQTT_SEND
+    mySem_destroy(&sem_scalper_timer_tick);
+    #endif
+    #ifdef USE_FILE_DB
+    mySem_destroy(&sem_saver_timer_tick);
+    #endif
+    mySem_destroy(&sem_to_HLC);
 
 #else
     sem_destroy(&sem_to_Model);
     sem_destroy(&sem_to_Wl);
     sem_destroy(&sem_os_timer_tick);
     sem_destroy(&sem_model_timer_tick);
-    sem_destroy(&sem_govern_timer_tick);
+    #ifdef USE_MQTT_SEND
+    sem_destroy(&sem_scalper_timer_tick);
+    #endif
+    #ifdef USE_FILE_DB
+    sem_destroy(&sem_saver_timer_tick);
+    #endif
+    sem_destroy(&sem_to_HLC);
 #endif
 
     pthread_mutex_destroy(&pthread_lock_gp_wl);
@@ -775,6 +838,7 @@ int main(int argc, char **argv)
     else
     {
         //print stuff:
+        /*
         printf("code: %d\n", *gn_run_simulation );
 
         for (int i = 0; i < (otp_domain_pw_dim); i++)
@@ -815,6 +879,7 @@ int main(int argc, char **argv)
             printf("temp: mem: %x, float: %f\n", (void*)&otp_model_core_temp[core], otp_model_core_temp[core]-273.15);
             //otpc_core_bindings[core] = 1;
         }
+        */
 
         free(otpc_core_bindings);
         free(otpc_domain_pw_budget);
@@ -847,16 +912,26 @@ int main(int argc, char **argv)
 static void model_handler(int sig, siginfo_t *si, void *uc)
 {
     static int os_counter = os_timer_multiplier;
-    static int govern_counter = govern_timer_multiplier;
+    static int scalper_counter = scalper_timer_multiplier;
     /*** Signal the Model Thread the data are Ready ***/
 #ifdef USE_MYSEM
     mySem_post(&sem_model_timer_tick);
+    #ifdef USE_FILE_DB
+    mySem_post(&sem_saver_timer_tick);
+    #endif
 #else
     //Busy Waiting to simulate a Binary Semaphore
     sem_getvalue(&sem_model_timer_tick, &sem_value);
     while(sem_value > 0)
     {sem_getvalue(&sem_model_timer_tick, &sem_value);}
     sem_post(&sem_model_timer_tick);
+    //
+    #ifdef USE_FILE_DB
+    sem_getvalue(&sem_saver_timer_tick, &sem_value);
+    while(sem_value > 0)
+    {sem_getvalue(&sem_saver_timer_tick, &sem_value);}
+    sem_post(&sem_saver_timer_tick);
+    #endif
 #endif
 
     os_counter--;
@@ -875,22 +950,23 @@ static void model_handler(int sig, siginfo_t *si, void *uc)
 #endif
     }
 
-
-    govern_counter--;
-    if (govern_counter <= 0)
+    #ifdef USE_MQTT_SEND
+    scalper_counter--;
+    if (scalper_counter <= 0)
     {
-        govern_counter = govern_timer_multiplier;
+        scalper_counter = scalper_timer_multiplier;
         /*** Signal the Model Thread the data are Ready ***/
 #ifdef USE_MYSEM
-        mySem_post(&sem_govern_timer_tick);
+        mySem_post(&sem_scalper_timer_tick);
 #else
         //Busy Waiting to simulate a Binary Semaphore
-        sem_getvalue(&sem_govern_timer_tick, &sem_value);
+        sem_getvalue(&sem_scalper_timer_tick, &sem_value);
         while(sem_value > 0)
-        {sem_getvalue(&sem_govern_timer_tick, &sem_value);}
-        sem_post(&sem_govern_timer_tick);
+        {sem_getvalue(&sem_scalper_timer_tick, &sem_value);}
+        sem_post(&sem_scalper_timer_tick);
 #endif
     }
+    #endif
 
 
 }

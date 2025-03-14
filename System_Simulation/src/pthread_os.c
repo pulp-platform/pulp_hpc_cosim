@@ -1,4 +1,3 @@
-
 /*************************************************************************
 *
 * Copyright 2023 ETH Zurich and University of Bologna
@@ -19,9 +18,6 @@
 * Author: Giovanni Bambini (gv.bambini@gmail.com)
 *
 **************************************************************************/
-
-
-
 
 //Standard Lib
 #include <stdio.h>
@@ -81,11 +77,15 @@ void* pthread_os_scmi_sim(void *ptr)
     int bind_mat_time;
 
     //TODO:
-    int core_time_divider = 2;
+    int core_time_divider = 1;
     int freq_time_divider = core_time_divider;
     int quad_time_divider = core_time_divider;
     int board_time_divider = core_time_divider;
     int bind_time_divider = core_time_divider;
+    int freq_time_multiplier = 1;
+    int quad_time_multiplier = 10;
+    int board_time_multiplier = 10;
+    int bind_time_multiplier = 1;
 
     //others
     float* mem_address = NULL;
@@ -159,7 +159,7 @@ void* pthread_os_scmi_sim(void *ptr)
             {
                 target_frequency_time[core]+=freq_time_divider;
 
-                if (target_frequency_time[core] >= TargetFrequency[core*N_FREQ_SEQ + target_frequency_counter[core]].time)
+                if (target_frequency_time[core] >= TargetFrequency[core*N_FREQ_SEQ + target_frequency_counter[core]].time * freq_time_multiplier)
                 {
                     target_frequency_time[core] = 0;
                     target_frequency_counter[core]++;
@@ -168,12 +168,18 @@ void* pthread_os_scmi_sim(void *ptr)
                         target_frequency_counter[core] = 0;
                     }
 
+                    /* SCMI*/
+                    #ifndef USE_SCMI
                     otpc_core_target_freq[core] = TargetFrequency[core*N_FREQ_SEQ + target_frequency_counter[core]].value;
+                    #endif
                 }
 
                 if (global_finished[core] == 1)
                 {
+                    /* SCMI*/
+                    #ifndef USE_SCMI
                     otpc_core_target_freq[core] = 1.0;
+                    #endif
                 }
 
             } //for (int core = 0; core < simulation.nb_elements; core++)
@@ -183,7 +189,7 @@ void* pthread_os_scmi_sim(void *ptr)
             {
                 pwr_budget_quad_time[quad]+=quad_time_divider;
 
-                if (pwr_budget_quad_time[quad] >= QuadPwrBudget[quad*N_PW_BUDGET_SEQ + pwr_budget_quad_counter[quad]].time)
+                if (pwr_budget_quad_time[quad] >= QuadPwrBudget[quad*N_PW_BUDGET_SEQ + pwr_budget_quad_counter[quad]].time * quad_time_multiplier)
                 {
                     pwr_budget_quad_time[quad] = 0;
                     pwr_budget_quad_counter[quad]++;
@@ -200,7 +206,7 @@ void* pthread_os_scmi_sim(void *ptr)
             /*** PWR BUDGET BOARD ***/
             pwr_budget_board_time+=board_time_divider;
 
-            if (pwr_budget_board_time >= BoardPwrBudget[pwr_budget_board_counter].time)
+            if (pwr_budget_board_time >= BoardPwrBudget[pwr_budget_board_counter].time * board_time_multiplier)
             {
                 pwr_budget_board_time = 0;
                 pwr_budget_board_counter++;
@@ -214,7 +220,7 @@ void* pthread_os_scmi_sim(void *ptr)
             /*** BINDING MATRIX ***/
             bind_mat_time+=bind_time_divider;
 
-            if (bind_mat_time >= BindMatrix[0*N_BINDING_MAT_SEQ + bind_mat_counter].time)
+            if (bind_mat_time >= BindMatrix[0*N_BINDING_MAT_SEQ + bind_mat_counter].time * bind_time_multiplier)
             {
                 bind_mat_time = 0;
                 bind_mat_counter++;

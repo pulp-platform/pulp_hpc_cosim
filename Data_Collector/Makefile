@@ -1,4 +1,3 @@
-
 ##########################################################################
 #
 # Copyright 2023 ETH Zurich and University of Bologna
@@ -20,6 +19,8 @@
 #
 ##########################################################################
 
+#http://www.steves-internet-guide.com/mqtt-username-password-example/?unapproved=210577&moderation-hash=47b58b163dc9bbd7da3628ce3bea135b#comment-210577
+#http://www.steves-internet-guide.com/install-mosquitto-linux/
 
 APP_SRCS1 = ./*.c
 
@@ -93,10 +94,10 @@ all: data_retriever data_retriever_local #fpga_publisher
 # 		$(MAKE) -C $(MOSQUITTO)
 
 data_retriever: $(APP_SRCS1)
-	gcc $^ -o $@ $(INCLUDES) $(CFLAGS) -Wall $(MAKE_FLAGS) -DMQTT_BROKER_IP=\"127.0.0.1\" -DMQTT_USERNAME=\"a\" -DMQTT_PASSWD=\"b\" -DMQTT_BROKER_PORT=1111
+	gcc $^ -o $@ $(INCLUDES) $(CFLAGS) -Wall $(MAKE_FLAGS) -DMQTT_BROKER_IP=\"137.204.213.167\" -DMQTT_USERNAME=\"\" -DMQTT_PASSWD=\"\" -DMQTT_BROKER_PORT=1880
 
 data_retriever_local: $(APP_SRCS1)
-	gcc $^ -o $@ $(INCLUDES) $(CFLAGS) -Wall $(MAKE_FLAGS) -DMQTT_BROKER_IP=\"127.0.0.1\" -DMQTT_USERNAME=\"a\" -DMQTT_PASSWD=\"b\" -DMQTT_BROKER_PORT=1111
+	gcc $^ -o $@ $(INCLUDES) $(CFLAGS) -Wall $(MAKE_FLAGS) -DMQTT_BROKER_IP=\"127.0.0.1\" -DMQTT_USERNAME=\"hpe\" -DMQTT_PASSWD=\"m0sq1tt0321\" -DMQTT_BROKER_PORT=1883
 
 clean:
 	-rm -f data_retriever data_retriever_local

@@ -1,4 +1,3 @@
-
 /*************************************************************************
 *
 * Copyright 2023 ETH Zurich and University of Bologna
@@ -19,7 +18,6 @@
 * Author: Giovanni Bambini (gv.bambini@gmail.com)
 *
 **************************************************************************/
-
 
 //Standard Lib
 #include <stdio.h>
@@ -452,7 +450,7 @@ const input_data_bm_t BindMatrix[N_BINDING_MAT_SEQ] = { {.value[0]=0, .value[1]=
 															.value[9]=2, .value[10]=0, .value[11]=2, .value[12]=1, .value[13]=1, .value[14]=0, .value[15]=2, .value[16]=2, .value[17]=2,
 															.value[18]=1, .value[19]=0, .value[20]=0, .value[21]=2, .value[22]=0, .value[23]=0, .value[24]=1, .value[25]=1, .value[26]=1, 
 															.value[27]=2, .value[28]=0, .value[29]=0, .value[30]=3, .value[31]=3, .value[32]=3, .value[33]=3, .value[34]=3, .value[35]=3, 
-															.time=2000}, //4 ("HPC")
+															.time=2000}, //4 ("EPI")
 
 														{.value[0]=0, .value[1]=0, .value[2]=0, .value[3]=0, .value[4]=0, .value[5]=0, .value[6]=0, .value[7]=0, .value[8]=0, 
 															.value[9]=0, .value[10]=0, .value[11]=0, .value[12]=0, .value[13]=0, .value[14]=0, .value[15]=0, .value[16]=0, .value[17]=0,

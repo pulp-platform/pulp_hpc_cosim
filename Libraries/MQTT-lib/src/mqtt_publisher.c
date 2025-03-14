@@ -1,4 +1,3 @@
-
 /*************************************************************************
 *
 * Copyright 2023 ETH Zurich and University of Bologna
@@ -19,11 +18,6 @@
 * Author: Giovanni Bambini (gv.bambini@gmail.com)
 *
 **************************************************************************/
-
-
-
-
-
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -136,6 +130,8 @@ int publisher_send(struct mqtt_instance *val, struct mqtt_publisher_message *mes
    if(rc != MOSQ_ERR_SUCCESS) {
       printf("[Publisher]: Warning: cannot send message. Errorcode: %d \n\r", rc);
    }
+   // reteined messages: https://www.hivemq.com/blog/mqtt-essentials-part-8-retained-messages/
+
    return 0;
 }
 

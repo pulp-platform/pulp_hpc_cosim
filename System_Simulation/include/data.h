@@ -1,4 +1,3 @@
-
 /*************************************************************************
 *
 * Copyright 2023 ETH Zurich and University of Bologna
@@ -20,15 +19,6 @@
 *
 **************************************************************************/
 
-
-
-/*
- * data.h
- *
- *  Created on: 14 mag 2020
- *      Author: giova
- */
-
 #ifndef INC_DATA_H_
 #define INC_DATA_H_
 
@@ -41,9 +31,26 @@
 #define MAX_TEMP                120
 #define NOISE_MAT_DIM           1000
 
+/*
+const float Icc[WL_STATES];
+const float Icc_Chiplet;
+const float Icc_coreUncert[Nc];
+const float Icc_tempDer[(MAX_TEMP / TEMP_DER_STEP)];
+const float Icc_noise[NOISE_MAT_DIM];
 
-const double A_test[N_HPC_CORE*2*N_HPC_CORE*2];
-const double B_test[N_HPC_CORE*2*(N_HPC_CORE+1)];
+const float Ceff[WL_STATES];
+const float Ceff_Chiplet;
+const float Ceff_coreUncert[Nc] ;
+const float Ceff_tempDer[(110 / TEMP_DER_STEP)];
+const float Ceff_noise[NOISE_MAT_DIM];
+*/
+
+//const float P_thrott__;
+//const float P_thrott_coreUncert[Nc];
+
+
+const double A_test[N_EPI_CORE*2*N_EPI_CORE*2];
+const double B_test[N_EPI_CORE*2*(N_EPI_CORE+1)];
 
 const double TempSensorNoise[NOISE_MAT_DIM];
 

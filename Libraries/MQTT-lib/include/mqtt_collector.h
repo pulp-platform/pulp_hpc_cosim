@@ -1,4 +1,3 @@
-
 /*************************************************************************
 *
 * Copyright 2023 ETH Zurich and University of Bologna
@@ -19,11 +18,6 @@
 * Author: Giovanni Bambini (gv.bambini@gmail.com)
 *
 **************************************************************************/
-
-
-/* Collector API.
- *
- */
 
 #ifndef _MQTT_COLLECTOR_
 #define _MQTT_COLLECTOR_
