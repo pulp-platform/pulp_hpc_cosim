@@ -1,4 +1,3 @@
-
 ##########################################################################
 #
 # Copyright 2023 ETH Zurich and University of Bologna
@@ -19,8 +18,6 @@
 # Author: Giovanni Bambini (gv.bambini@gmail.com)
 #
 ##########################################################################
-
-
 
 #Simulation
 SRCS 		= System_Simulation/main.c
@@ -54,6 +51,12 @@ INC_PATH 	+= csv-fast-reader/
 # Personalize
 #MY_FLAGS += -DDEBUG_ACTIVE
 MY_FLAGS += -DUSE_INSTRUCTIONS_COMPOSITION
+MY_FLAGS += -DSCMI_WL_TIME_S=0.1 -DSCMI_TOP_FREQ=3.4 -DSCMI_CORE=2 -DHLC_TS_S=0.001 -DSCMI_SIM_TIME_S=10
+MY_FLAGS += -UUSE_SCMI
+
+MY_FLAGS += -DUSE_MQTT_SEND -UUSE_FILE_DB
+
+MY_FLAGS += -UUSE_EXAMON
 
 #Code
 MY_FLAGS += -DUSE_MYSEM

@@ -3,7 +3,10 @@
     {
         "power_domains": 4,
         "use_all_domains": "no",
+        "cores_rows": 6,
+        "cores_columns": 6,
         "use_constant_deviation": "no",
+        "use_parameter_deviation": "yes",
         "chiplets": [
             {
                 "index": 0,
@@ -64,6 +67,15 @@
 
     "core": [
         {
+            "name": "Core Zeus",
+            "cid": 1,
+            "leak_vdd": 3.472,
+            "leak_temp": 17.5868,
+            "leak_process": 468.98,
+            "instructions_power_levels": 5,
+            "dyn_pow_cpu_coeff": [100, 390, 814, 1145, 1106]
+        },
+        {
             "name": "Monte Cimone",
             "cid": 2,
             "leak_vdd": 324.29,
@@ -96,7 +108,7 @@
 
     "hbm": [
         {
-            "name": "HBM",
+            "name": "HBM Rhea1",
             "cid": 1025,
             "coeff": 0.25,
             "default_activity": 100

@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 
 ##########################################################################
 #
@@ -19,14 +20,6 @@
 # Author: Giovanni Bambini (gv.bambini@gmail.com)
 #
 ##########################################################################
-
-
-
-
-#!/usr/bin/env python3
-# Eventine <giovanni.bambini2@unibo.it>
-#
-# All rights reserved.
 
 import csv
 import matplotlib.pyplot as plt
